@@ -1,0 +1,504 @@
+/* --- Global Styles & Variables --- */
+:root {
+  --background-color: #F8F9FA;
+  --card-background: #FFFFFF;
+  --border-color: #E9ECEF;
+  --text-primary: #212529;
+  --text-secondary: #6C757D;
+  --text-placeholder: #adb5bd;
+  --accent-color: #FDB924; /* Yellow/Gold from original design */
+  --accent-color-dark: #e6a721;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --card-radius: 16px;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+
+  /* --- Thematic Background --- */
+  background-color: var(--background-color); /* Base color fallback */
+  background-image:
+    /* Layer 3: Paths (thin, semi-transparent dashed diagonal lines) */
+    repeating-linear-gradient(
+      45deg,
+      rgba(233, 236, 239, 0.7), /* from --border-color */
+      rgba(233, 236, 239, 0.7) 1px,
+      transparent 1px,
+      transparent 12px
+    ),
+    /* Layer 2: Nodes (sparse, circular dots) */
+    radial-gradient(
+      rgba(233, 236, 239, 0.9) 1px, /* from --border-color */
+      transparent 1px
+    ),
+    /* Layer 1: Glows (subtle, ambient depth) */
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(253, 185, 36, 0.08), /* from --accent-color */
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 10% 90%,
+      rgba(253, 185, 36, 0.07), /* from --accent-color */
+      transparent 25%
+    );
+  background-size:
+    100% 100%,     /* Layer 3: Paths cover the full view */
+    48px 48px,     /* Layer 2: Nodes repeat on a 48px grid */
+    100% 100%,     /* Layer 1a: Top-right glow covers the full view */
+    100% 100%;     /* Layer 1b: Bottom-left glow covers the full view */
+  background-repeat:
+    no-repeat,     /* Layer 3: The repeating-gradient fills the single tile */
+    repeat,        /* Layer 2: Nodes repeat */
+    no-repeat,     /* Layer 1a: Glow does not repeat */
+    no-repeat;     /* Layer 1b: Glow does not repeat */
+  background-position:
+    0 0,           /* Paths */
+    24px 24px,     /* Nodes are offset to be in the middle of grid */
+    0 0,           /* Glow */
+    0 0;           /* Glow */
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+    min-height: 100dvh;
+}
+
+/* --- App Layout (Sticky Footer) --- */
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh; /* Changed from min-height to prevent overflow */
+  gap: 24px; /* Spaces out header, main, and footer */
+}
+
+.app-header-wrapper {
+  flex-shrink: 0; /* Prevent header from shrinking */
+  width: 100%; /* Ensure it fills container width */
+}
+
+.main-content {
+  flex-grow: 1; /* CRITICAL: Allows this area to expand and fill space */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0; /* Prevents flexbox overflow issues */
+  width: 100%; /* Ensure it fills container width */
+}
+
+.command-bar-container {
+  flex-shrink: 0; /* Prevent footer from shrinking */
+  width: 100%; /* Ensure it fills container width */
+}
+
+/* --- Header --- */
+.app-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.app-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* --- Base Card Style --- */
+.card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+/* --- Canvas --- */
+.canvas-card-outer {
+  padding: 12px;
+  width: 100%;
+  height: 100%; /* Fill the main content area */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Space between canvas and footer */
+}
+
+/* Default state for the canvas (placeholder) */
+.canvas-card-inner {
+  position: relative;
+  width: 100%; /* Default to full width */
+  aspect-ratio: 16 / 9; /* Default fixed aspect ratio for placeholder */
+  background-color: var(--card-background);
+  border-radius: 10px; /* Inner radius */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  flex-grow: 1; /* Allow placeholder to fill space */
+  min-height: 0; /* Critical for flex-grow to work in a constrained container */
+}
+
+/* Modifier for when content (image) is present */
+.canvas-card-inner.has-content {
+  aspect-ratio: auto; /* Let content define ratio */
+}
+
+.canvas-card-inner.is-loading {
+  cursor: progress;
+}
+
+.canvas-upload-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* Grid background for placeholder */
+.canvas-card-inner:not(.has-content) {
+    border: 2px dashed var(--accent-color);
+    background-size: 40px 40px;
+    background-image:
+        linear-gradient(to right, #e9ecef 1px, transparent 1px),
+        linear-gradient(to bottom, #e9ecef 1px, transparent 1px);
+    padding: 20px; /* gives space for overlay */
+}
+
+.spinner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/*
+ * Explicit rule for all canvas images.
+ * This ensures the image scales to fit its container without being cropped,
+ * preserving its aspect ratio. `object-fit: contain` is key.
+ */
+.canvas-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.canvas-compare-view {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.canvas-compare-half {
+  width: 50%;
+  height: 100%;
+  position: relative; /* For badge positioning */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px; /* Give some space around the images */
+}
+
+.canvas-compare-divider {
+  width: 1px;
+  background-color: var(--border-color);
+  height: 100%;
+}
+
+.truth-badge {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: rgba(230, 248, 238, 0.9);
+    color: #087f5b;
+    border: 1px solid #69db7c;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 5;
+    backdrop-filter: blur(4px);
+}
+
+.truth-badge.modified {
+    background-color: rgba(255, 236, 232, 0.9);
+    color: #c92a2a;
+    border: 1px solid #ff8787;
+}
+
+.truth-badge-icon {
+    display: flex;
+    align-items: center;
+}
+
+.canvas-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  flex-shrink: 0; /* Prevent the footer from shrinking */
+}
+
+.canvas-file-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 4px 0;
+  min-height: 28px; /* reserve space */
+  text-align: left;
+  flex-grow: 1;
+}
+
+.canvas-file-hint span {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* --- Canvas Actions --- */
+.canvas-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pill-toggle, .export-button {
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 150ms ease-in-out;
+  white-space: nowrap;
+}
+.pill-toggle:disabled, .export-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary Action Style (Compare) */
+.pill-toggle {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.pill-toggle:hover:not(:disabled) {
+  border-color: #ced4da;
+  background-color: #f8f9fa;
+}
+.pill-toggle[aria-pressed="true"] {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color-dark);
+}
+
+/* Secondary Action Style (Export) */
+.export-button {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.export-button:hover:not(:disabled) {
+  border-color: #ced4da;
+  background-color: #f8f9fa;
+}
+
+/* --- Command Bar --- */
+.command-bar {
+  padding: 16px; /* Padding now on the inner element */
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: end; /* Align items to the bottom */
+  width: 100%;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding-left: 4px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  background-color: #f1f3f5;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.segmented-control button {
+  padding: 6px 16px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 150ms ease-in-out;
+}
+
+.segmented-control button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.segmented-control button[aria-checked="true"] {
+  background-color: var(--accent-color);
+  color: var(--text-primary);
+  border-color: var(--accent-color-dark);
+  box-shadow: none;
+}
+
+.text-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out;
+  color: var(--text-primary);
+  background-color: var(--card-background);
+}
+
+.text-input::placeholder {
+    color: var(--text-placeholder);
+}
+
+.text-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(253, 185, 36, 0.3);
+}
+
+.text-input:disabled {
+    background-color: #f1f3f5;
+    cursor: not-allowed;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.primary-button {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 150ms ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--accent-color);
+    color: var(--text-primary);
+    border-color: var(--accent-color-dark);
+}
+
+.primary-button:hover:not(:disabled) {
+    background-color: var(--accent-color-dark);
+}
+
+.primary-button:disabled {
+    background-color: #f1f3f5;
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+    opacity: 1; /* Overwrite browser default */
+    cursor: not-allowed;
+}
+
+.button-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-top-color: var(--text-primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+.primary-button:disabled .button-spinner {
+    border-top-color: var(--text-secondary);
+}
+
+/* --- Utility --- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
