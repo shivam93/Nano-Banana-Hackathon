@@ -1,7 +1,15 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
-*/
+ */
+
+/**
+ * This file serves as the main application component and controller for "Slide Surgeon".
+ * It manages the application's state, including the original uploaded image, generated
+ * design variants, loading states, and user inputs. It also orchestrates the core
+ * logic for the "Deconstruct-Reconstruct" pipeline by interacting with the Gemini API
+ * for both smart OCR and image generation/editing.
+ */
 import React, {useState} from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
@@ -32,7 +40,12 @@ const fileToBase64 = (file: File): Promise<string> =>
 
 /**
  * Takes a raw image data URL and composites it onto a 16:9 canvas
- * with a white background for consistent UI display.
+ * with a specified background color for consistent UI display. This ensures
+ * all generated images fit perfectly within the app's presentation frame.
+ * @param {string} imageDataUrl The source image as a base64 data URL.
+ * @param {string} [backgroundColor='#FFFFFF'] The desired background color for the canvas.
+ * @param {number} [targetWidth=1920] The target width of the output canvas. Height is calculated to maintain a 16:9 ratio.
+ * @returns {Promise<string>} A promise that resolves with the new 16:9 image as a base64 data URL.
  */
 const processFinalImage = async (imageDataUrl: string, backgroundColor: string = '#FFFFFF', targetWidth: number = 1920): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -174,6 +187,14 @@ function App() {
     }
   };
 
+  /**
+   * Performs "smart OCR" on an uploaded image file using the Gemini model.
+   * This function sends the image and a specialized prompt to deconstruct the slide's
+   * content into a structured JSON object, which serves as the source of truth for reconstruction.
+   * @param {File} imageFile The image file uploaded by the user.
+   * @returns {Promise<any>} A promise that resolves to the structured JSON object extracted from the slide.
+   * Returns a fallback error object if the API call fails.
+   */
   const runOcrOnImage = async (imageFile: File): Promise<any> => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -221,6 +242,15 @@ function App() {
     }
   };
 
+  /**
+   * Orchestrates the main "Deconstruct-Reconstruct" pipeline.
+   * 1. Sets loading states and clears previous results.
+   * 2. Deconstructs the slide: either uses pre-defined demo data or calls `runOcrOnImage` for live processing.
+   * 3. Reconstructs the visual: sends the structured JSON and style prompts to the image generation model.
+   * 4. Implements a timeout to prevent excessively long generation requests.
+   * 5. Processes the final image into a 16:9 format and updates the application state.
+   * @returns {Promise<void>}
+   */
   const handleGenerateVariants = async () => {
     if (!originalImage) {
         setError('Please upload an image first.');
@@ -234,6 +264,7 @@ function App() {
 
     try {
         let structuredJson: any;
+        // This logic allows for a smoother demo experience by using reliable, pre-extracted data for specific filenames.
         const isDemoFile = Object.keys(DEMO_DATA).includes(originalImage.name);
 
         if (isDemoFile) {
@@ -263,6 +294,7 @@ function App() {
             },
         });
 
+        // Use Promise.race to enforce a timeout on the API call, improving user experience by preventing indefinite loading.
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Generation timed out. The request took too long, please try again.')), GENERATION_TIMEOUT_MS)
         );
@@ -289,7 +321,7 @@ function App() {
         const displayImageUrl = await processFinalImage(sourceGraphicUrl);
 
         const finalVariant: Variant = {
-            id: crypto.randomUUID(),
+            id: crypto.randomUUID(), // Use crypto.randomUUID for a unique and secure identifier.
             sourceGraphicUrl,
             displayImageUrl,
             truthLockStatus: 'verified',
@@ -305,6 +337,14 @@ function App() {
     }
   };
 
+  /**
+   * Applies a user's text-based tweak to an existing generated variant.
+   * It sends the original image, the tweak instruction, and a specialized prompt
+   * to the Gemini model to get back a modified image.
+   * @param {string} variantId The ID of the variant to be modified.
+   * @param {string} tweakText The user's natural language instruction (e.g., "make the title blue").
+   * @returns {Promise<void>}
+   */
   const handleApplyTweak = async (variantId: string, tweakText: string) => {
     setIsTweaking(true);
     setError(null);
@@ -320,6 +360,7 @@ function App() {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+        // This regex is used to parse the MIME type and base64 data from the data URL of the source image.
         const match = variantToTweak.sourceGraphicUrl.match(/^data:(.+);base64,(.+)$/);
         if (!match) {
             throw new Error("Invalid data URL format for the variant image.");
