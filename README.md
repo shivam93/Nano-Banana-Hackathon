@@ -33,8 +33,8 @@ Slide Surgeon is a modern web application built with a focus on a seamless user 
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/slide-surgeon.git
-    cd slide-surgeon
+    git clone https://github.com/shivam93/Nano-Banana-Hackathon.git
+    cd Nano-Banana-Hackathon
     ```
 
 2.  **Install dependencies:**
